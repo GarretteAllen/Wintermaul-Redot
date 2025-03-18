@@ -1,0 +1,53 @@
+[gd_scene load_steps=2 format=3 uid="uid://bmod5b6do53ur"]
+
+[ext_resource type="Script" uid="uid://bli3k8iv8nqwg" path="res://Client/Scripts/UI/Lobby/Login.gd" id="1_skag6"]
+
+[node name="Login" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_skag6")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 0
+offset_left = 274.0
+offset_top = 29.0
+offset_right = 850.0
+offset_bottom = 599.0
+color = Color(0.172833, 0.172833, 0.172833, 1)
+
+[node name="Username" type="LineEdit" parent="Background"]
+layout_mode = 0
+offset_left = 194.0
+offset_top = 60.0
+offset_right = 368.0
+offset_bottom = 91.0
+placeholder_text = "USERNAME"
+
+[node name="Password" type="LineEdit" parent="Background"]
+layout_mode = 0
+offset_left = 194.0
+offset_top = 96.0
+offset_right = 368.0
+offset_bottom = 127.0
+placeholder_text = "PASSWORD"
+secret = true
+
+[node name="LoginButton" type="Button" parent="Background"]
+layout_mode = 0
+offset_left = 178.0
+offset_top = 277.0
+offset_right = 250.0
+offset_bottom = 317.0
+text = "LOGIN"
+
+[node name="RegisterButton" type="Button" parent="Background"]
+layout_mode = 0
+offset_left = 314.0
+offset_top = 277.0
+offset_right = 386.0
+offset_bottom = 317.0
+text = "REGISTER"
