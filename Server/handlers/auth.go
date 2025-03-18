@@ -8,6 +8,7 @@ import (
 
 	"wss/models"
 	"wss/storage"
+	"wss/utils"
 
 	"github.com/gorilla/websocket"
 	"go.mongodb.org/mongo-driver/bson"
@@ -28,17 +29,27 @@ func HandleAuth(conn *websocket.Conn, msg []byte) {
 	usersCollection := storage.GetCollection("users")
 
 	if data.Action == "register" {
+		// hash password
+		hashedPassword, err := utils.HashPassword(data.Password)
+		if err != nil {
+			conn.WriteJSON(map[string]string{"status": "error", "message": "Internal server error"})
+			return
+		}
+
+		// create new user
 		newUser := models.User{
 			Username: data.Username,
-			Password: data.Password,
+			Password: hashedPassword,
 			Created:  time.Now(),
 		}
 
-		_, err := usersCollection.InsertOne(context.TODO(), newUser)
+		_, err = usersCollection.InsertOne(context.TODO(), newUser)
 		if err != nil {
 			log.Println("Registration failed:", err)
+			conn.WriteJSON(map[string]string{"status": "error", "message": "Registration failed"})
 			return
 		}
+
 		conn.WriteJSON(map[string]string{"status": "registered"})
 	} else if data.Action == "login" {
 		var user models.User
@@ -48,8 +59,24 @@ func HandleAuth(conn *websocket.Conn, msg []byte) {
 			return
 		} else if err != nil {
 			log.Println("Login error:", err)
+			conn.WriteJSON(map[string]string{"status": "error", "message": "Internal server error"})
 			return
 		}
-		conn.WriteJSON(map[string]string{"status": "logged_in"})
+
+		// verify password
+		if !utils.VerifyPassword(data.Password, user.Password) {
+			conn.WriteJSON(map[string]string{"status": "error", "message": "Invalid password"})
+			return
+		}
+
+		// generate token
+		token, err := utils.GenerateToken(user.Username)
+		if err != nil {
+			log.Println("Token generation error:", err)
+			conn.WriteJSON(map[string]string{"status": "error", "message": "Internal server error"})
+			return
+		}
+
+		conn.WriteJSON(map[string]string{"status": "logged_in", "token": token})
 	}
 }

@@ -2,36 +2,58 @@ package services
 
 import (
 	"log"
+	"sync"
 	"wss/models"
+	"wss/utils"
 
 	"github.com/gorilla/websocket"
 )
 
-var lobbies = make(map[string]*models.Lobby)
+var lobbies = sync.Map{}
 
-// TODO: get lobby name from godot message to append lobby players.
 func CreateLobby() *models.Lobby {
+	// Generate a unique ID for the lobby
+	lobbyID := utils.GenerateUniqueID()
+	if lobbyID == "" {
+		log.Println("Failed to generate unique lobby ID")
+		return nil
+	}
+
 	lobby := &models.Lobby{
-		ID:      "randomID",
+		ID:      lobbyID,
 		Players: []string{},
 		MaxSize: 9,
 	}
-	lobbies[lobby.ID] = lobby
-	log.Println("Lobby created:", lobby.ID)
+
+	lobbies.Store(lobbyID, lobby)
+	log.Println("Lobby created with ID:", lobbyID)
 	return lobby
 }
 
-func JoinLobby(lobbyID string, conn *websocket.Conn) {
-	lobby, exists := lobbies[lobbyID]
+func JoinLobby(lobbyID string, conn *websocket.Conn, username string) {
+	lobbyInterface, exists := lobbies.Load(lobbyID)
 	if !exists {
 		log.Println("Lobby not found:", lobbyID)
+		conn.WriteJSON(map[string]string{"status": "error", "message": "Lobby not found"})
 		return
 	}
+
+	lobby := lobbyInterface.(*models.Lobby)
+
 	if len(lobby.Players) >= lobby.MaxSize {
 		log.Println("Lobby full:", lobbyID)
+		conn.WriteJSON(map[string]string{"status": "error", "message": "Lobby is full"})
 		return
 	}
-	// TODO: get player username from godot message to append lobby players.
-	lobby.Players = append(lobby.Players, "newPlayer")
-	log.Println("Player joined lobby:", lobbyID)
+
+	// TODO: Replace "newPlayer" with the actual player's username from the game message
+	lobby.Players = append(lobby.Players, username)
+
+	lobbies.Store(lobbyID, lobby)
+	log.Println("Player", username, "joined lobby:", lobbyID)
+}
+
+func DeleteLobby(lobbyID string) {
+	lobbies.Delete(lobbyID)
+	log.Println("Lobby deleted:", lobbyID)
 }
