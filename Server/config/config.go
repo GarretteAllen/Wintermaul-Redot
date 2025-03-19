@@ -30,7 +30,11 @@ func InitConfig() {
 	}
 
 	DB = client.Database("WMR")
+	if DB == nil {
+		log.Fatal("DB is nil after mongo connection")
+	}
 	log.Println("Connected to MongoDB")
+	log.Println("Config initialization complete")
 }
 
 func GetCollection(name string) *mongo.Collection {

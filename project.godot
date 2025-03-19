@@ -11,12 +11,14 @@ config_version=5
 [application]
 
 config/name="WintermaulRedot"
+run/main_scene="uid://bmod5b6do53ur"
 config/features=PackedStringArray("4.4", "Forward Plus")
 config/icon="res://icon.svg"
 
 [autoload]
 
 WebSocketManager="*res://Client/Scripts/Global/WebSocketManager.gd"
+MessageHandler="*res://Client/Scripts/Global/MessageHandler.gd"
 
 [dotnet]
 

@@ -17,31 +17,37 @@ import (
 
 func HandleAuth(conn *websocket.Conn, msg []byte) {
 	var data struct {
-		Action   string `json:"action"`
-		Username string `json:"username"`
-		Password string `json:"password"`
+		Action  string `json:"action"`
+		Payload struct {
+			Username string `json:"username"`
+			Password string `json:"password"`
+		} `json:"payload"`
 	}
 	if err := json.Unmarshal(msg, &data); err != nil {
 		log.Println("Invalid auth request")
 		return
 	}
-
+	log.Println(data)
 	usersCollection := storage.GetCollection("users")
 
 	if data.Action == "register" {
+		log.Println("Got register message")
 		// hash password
-		hashedPassword, err := utils.HashPassword(data.Password)
+		hashedPassword, err := utils.HashPassword(data.Payload.Password)
 		if err != nil {
 			conn.WriteJSON(map[string]string{"status": "error", "message": "Internal server error"})
 			return
 		}
+		log.Println("Creating new user!")
 
 		// create new user
 		newUser := models.User{
-			Username: data.Username,
+			Username: data.Payload.Username,
 			Password: hashedPassword,
 			Created:  time.Now(),
 		}
+
+		log.Println("Attempting to insert new user:", newUser)
 
 		_, err = usersCollection.InsertOne(context.TODO(), newUser)
 		if err != nil {
@@ -49,11 +55,17 @@ func HandleAuth(conn *websocket.Conn, msg []byte) {
 			conn.WriteJSON(map[string]string{"status": "error", "message": "Registration failed"})
 			return
 		}
+		log.Println("User registered successfully")
 
-		conn.WriteJSON(map[string]string{"status": "registered"})
+		err = conn.WriteJSON(map[string]string{"status": "registered"})
+		if err != nil {
+			log.Println("Error sending registration response:", err)
+		} else {
+			log.Println("Sent registration response successfully")
+		}
 	} else if data.Action == "login" {
 		var user models.User
-		err := usersCollection.FindOne(context.TODO(), bson.M{"username": data.Username}).Decode(&user)
+		err := usersCollection.FindOne(context.TODO(), bson.M{"username": data.Payload.Username}).Decode(&user)
 		if err == mongo.ErrNoDocuments {
 			conn.WriteJSON(map[string]string{"status": "error", "message": "User not found"})
 			return
@@ -64,7 +76,7 @@ func HandleAuth(conn *websocket.Conn, msg []byte) {
 		}
 
 		// verify password
-		if !utils.VerifyPassword(data.Password, user.Password) {
+		if !utils.VerifyPassword(data.Payload.Password, user.Password) {
 			conn.WriteJSON(map[string]string{"status": "error", "message": "Invalid password"})
 			return
 		}

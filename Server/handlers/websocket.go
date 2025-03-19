@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 	"sync"
@@ -16,6 +17,7 @@ var upgrader = websocket.Upgrader{
 var clients = sync.Map{}
 
 func HandleConnections(w http.ResponseWriter, r *http.Request) {
+	log.Println("Incoming WebSocket connection attempt")
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println("Websocket Upgrade failed:", err)
@@ -40,6 +42,22 @@ func HandleConnections(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 		log.Printf("Received: %s\n", msg)
+
+		var message struct {
+			Action string `json:"action"`
+		}
+		if err := json.Unmarshal(msg, &message); err != nil {
+			log.Println("Error unmarshaling message:", err)
+			continue
+		}
+		switch message.Action {
+		case "register", "login":
+			HandleAuth(conn, msg)
+		case "create_lobby", "join_lobby":
+			HandleLobby(conn, msg)
+		default:
+			log.Print("Unknown action:", message.Action)
+		}
 	}
 }
 
